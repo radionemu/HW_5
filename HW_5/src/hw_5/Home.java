@@ -2,10 +2,12 @@ package hw_5;
 
 import javax.swing.*;
 import java.awt.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 
-public class Home extends JPanel {
+public class Home extends JPanel implements PropertyChangeListener {
     Toolkit kit = Toolkit.getDefaultToolkit();
     Mainframe topframe;
 
@@ -22,6 +24,7 @@ public class Home extends JPanel {
     JLabel clock = new JLabel("00:00");
     JLabel category = new JLabel("▶ HOME");
     JLabel today = new JLabel("오늘의 단어");
+    JLabel unable = new JLabel("<html>단어장 파일이 연결되지 않았습니다.<br>설정에 들어가서 단어장 파일의 경로를 확인해주세요.</html>");
 
     Home(){
         //시계
@@ -47,19 +50,22 @@ public class Home extends JPanel {
         today.setFont(textfont);
         today.setLocation(20, 400);
         //패널
-        JLabel unable = new JLabel("<html>단어장 파일이 연결되지 않았습니다.<br>설정에 들어가서 단어장 파일의 경로를 확인해주세요.</html>");
         unable.setBounds(20,470, 400, 200);
         unable.setAlignmentX(CENTER_ALIGNMENT);
         unable.setBackground(new Color(0,0,0, 128));
         unable.setOpaque(true);
-        if(!VocManager.isadded){
-            unable.setVisible(true);
-        }
-
-
         this.add(clock);
         this.add(category);
         this.add(today);
         this.add(unable);
+    }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if(!VocManager.isadded){
+            unable.setVisible(true);
+        }else{
+            unable.setVisible(false);
+        }
     }
 }

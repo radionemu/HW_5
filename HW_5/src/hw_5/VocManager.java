@@ -22,6 +22,7 @@ public class VocManager {
 
     public String makeVoc(String fileName) {
         isadded = false;
+        voc.clear();
         try(Scanner scan = new Scanner(new File(fileName))){
             while(scan.hasNextLine()){
                 String str = scan.nextLine();
