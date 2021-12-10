@@ -1,41 +1,63 @@
 package hw_5;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class VocManager {
     private String userName;
-    private ArrayList<Word> voc = new ArrayList<>();
-    private int number = 0;
+    public ArrayList<Word> voc = new ArrayList<>();
     private int maximumnum = 100;
 
-    public static boolean isadded = false;
+    public boolean init = true;
+    public int i=1;
+    public int cor=0;
+    public int ans;
 
+    public long ftime, stime;
     static Scanner scan = new Scanner(System.in);
+    ArrayList<Word> quizarr = new ArrayList<>();
 
-    void addWord(Word word){
+
+    Mainframe mainframe;
+
+    public void addWord(Word word){
         if(voc.size() < maximumnum)voc.add(word);
-        else System.out.println("단어장에 더이상의 단어를 등록할 수 없습니다.");
+        else JOptionPane.showMessageDialog(null,"단어장에 더이상의 단어를 등록할 수 없습니다.", "경고", JOptionPane.WARNING_MESSAGE);
+    }
+
+    public void saveWord(String filename){
+        try(FileWriter out = new FileWriter(filename)){
+            for(Word voca : voc){
+                out.write(voca.eng+"\t"+voca.kor+"\t"+voca.corcount+"\n");
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null,"저장에 실패했습니다.","경고",JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     public String makeVoc(String fileName) {
-        isadded = false;
-        voc.clear();
+        voc = new ArrayList<>();
+        mainframe.eventListener.islistadded = false;
         try(Scanner scan = new Scanner(new File(fileName))){
             while(scan.hasNextLine()){
                 String str = scan.nextLine();
                 String[] tmp = str.split("\t");
-                this.addWord(new Word(tmp[0].trim(),tmp[1].trim()));
+                try{
+                    this.addWord(new Word(tmp[0].trim(),tmp[1].trim(),Integer.parseInt(tmp[2].trim())));
+                }catch (ArrayIndexOutOfBoundsException a){
+                    return "단어장의 양식이 올바르지 않습니다. \n파일을 확인해주세요.";
+                }
             }
-            isadded = true;
+            mainframe.eventListener.islistadded = true;
+            return null;
         }catch (FileNotFoundException e){
             return "단어장이 생성되지 않았습니다. \n파일명을 확인해주세요.";
-        }finally {
-
         }
-        return null;
     }
     //단어장 범위 내의 단어중 랜덤하게 4개를 고른다.
     //고른 단어 중에 선행 인덱스에 같은게 있으면 취소 후 재실행.
@@ -46,12 +68,15 @@ public class VocManager {
     private final int SELLIM = 4;
 
 
-    private void Quiz() throws InputMismatchException{
-        long stime = System.currentTimeMillis();
-        int cor = 0;
-        for(int i =1; i<=QUIZNUM; i++){
-            ArrayList<Word> quizarr = new ArrayList<>();
-            System.out.println("------객관식 퀴즈 "+i+"번-------");
+    public void Quiz(JLabel number, JLabel strings, JRadioButton[] answers) throws InputMismatchException{
+        if(init) {
+            cor =0;
+            i = 1;
+            stime = System.currentTimeMillis();
+            init = false;
+        }
+            quizarr = new ArrayList<>();
+            number.setText(i+"");
             a : while(quizarr.size()<SELLIM){
                 int num = (int)((Math.random()* voc.size()));
                 Word neword = voc.get(num);
@@ -61,41 +86,39 @@ public class VocManager {
                 }
                 quizarr.add(neword);
             }
-            for(Word word : quizarr){
-                System.out.println(word.eng+" "+word.kor);
-            }
 
-            int ans = (int)((Math.random()*SELLIM));
+            ans = (int)((Math.random()*SELLIM));
             //출력
-            System.out.println(quizarr.get(ans).eng+"의 뜻은 무엇일까요?");
+            strings.setText(quizarr.get(ans).eng+"의 뜻은 무엇일까요?");
             for(int a=0; a<SELLIM;a++){
-                System.out.println((a+1)+") "+quizarr.get(a).kor);
+                answers[a].setText((a+1)+") "+quizarr.get(a).kor);
             }
-            System.out.print("답을 입력하세요. : ");
-            try{
-                int playersel = scan.nextInt() - 1;
-                if(ans == playersel) {
-                    System.out.println("정답입니다.");
-                    quizarr.get(ans).corcount ++;
-                    System.out.println(quizarr.get(ans));
-                    cor++;
-                }else{
-                    System.out.println("틀렸습니다. 정답은 "+ (ans+1) +"번입니다.");
-                    scan.nextLine();
-                }
-            }catch (InputMismatchException ime){
-                System.out.println("틀렸습니다. 정답은 "+ (ans+1) +"번입니다.");
-                scan.nextLine();
-            }
-
-        }
-        long ftime = System.currentTimeMillis();
-        int timer = Math.round((ftime-stime)/1000);
-        System.out.println();
-        System.out.println(userName+"님 "+QUIZNUM+"문제중 "+cor+"개 맞추셨고, 총 "+timer+"초 소요되었습니다.");
-
+//        }
     }
 
+    public void Check(int answer){
+        if(answer == ans){
+            JOptionPane.showMessageDialog(null,"정답입니다!","정답",JOptionPane.INFORMATION_MESSAGE);
+            cor++;
+            i++;
+        }
+        else{
+            JOptionPane.showMessageDialog(null,"틀렸습니다. 정답은 "+ (ans+1) +"번입니다.","오답",JOptionPane.INFORMATION_MESSAGE);
+            quizarr.get(ans).corcount ++;
+            saveWord(mainframe.directory);
+            i++;
+        }
+        if(i > 10){
+            ftime = System.currentTimeMillis();
+            int timer = Math.round((ftime-stime)/1000);
+            JOptionPane.showMessageDialog(null,userName+"님 "+QUIZNUM+"문제중 "+cor+"개 맞추셨고, 총 "+timer+"초 소요되었습니다.","결과",JOptionPane.INFORMATION_MESSAGE);
+            for(int i=0; i<4; i++)mainframe.quizclass.ans[i].setVisible(false);
+            mainframe.quizclass.number.setVisible(false);
+            mainframe.quizclass.quizstr.setVisible(false);
+            mainframe.quizclass.StartPanel.setVisible(true);
+            init = true;
+        }
+    }
 
     private void searchVoc2() {
         System.out.println("------단어검색2-------");
@@ -113,25 +136,19 @@ public class VocManager {
         }
     }
 
-    public void searchVoc(){
-        System.out.println("------단어검색-------");
-        System.out.print("검색할 단어를 선택하세요.");
-        String sWord =scan.nextLine();
+    public String searchVoc(String str){
+        String sWord =str;
         sWord = sWord.trim();
         for(Word word : voc) {
             if(word!=null){
                 if(word.eng.equals(sWord)){
-                    System.out.println("단어의 뜻 : "+word.kor);
-                    return;
+                    return "단어의 뜻 : "+word.kor;
                 }
             }else{
-                //??
-                System.out.println("단어장에 등록되어있지 않습니다.");
                 break;
             }
         }
-        System.out.println("단어장에 등록되어있지 않습니다.");
-        return;
+        return "단어장에 등록되어있지 않습니다.";
     }
 
     public void frequent(){

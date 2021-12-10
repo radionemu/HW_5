@@ -6,10 +6,11 @@ public class Word implements Comparable<Word>{
 
     int corcount = 0;
 
-    public Word(String eng, String kor){
+    public Word(String eng, String kor, int corcount){
         super();
         this.eng = eng;
         this.kor = kor;
+        this.corcount = corcount;
     }
 
     @Override

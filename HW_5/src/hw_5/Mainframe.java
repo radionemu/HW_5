@@ -1,44 +1,42 @@
 package hw_5;
 
-import javax.security.auth.login.LoginContext;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.io.File;
-import java.io.IOException;
-import java.net.JarURLConnection;
+import java.awt.event.*;
+import java.io.*;
+import java.util.Scanner;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 public class Mainframe extends JFrame implements ActionListener{
-    Toolkit kit = Toolkit.getDefaultToolkit();
     Container container = getContentPane();
 
     //Fonts
     File EBFontfile = new File("fonts/NanumSquareRoundB.ttf");
-    Font font;
     Font Sidemenufonts;
 
     //Color
     Color sidebarColor = new Color(0x036B3F);
     Color sidebarentered = new Color(0x158B4F);
-    Color sidebarClicked = new Color(0x289D5F);
+//    Color sidebarClicked = new Color(0x289D5F);
 
     //Main UI
     JPanel SideBar;
     JPanel MainPanel;
 
     //HOME
-    JPanel HomePanel;
 
     //MainPage
     CardLayout card = new CardLayout();
     Home homeclass = new Home();
+    List listclass = new List();
+    Search searchclass = new Search();
+    Quiz quizclass = new Quiz();
+    Review reviewclass = new Review();
     Setting settingclass = new Setting();
 
     //Side bar
-    ImageIcon searchimg = new ImageIcon("textures/sidebars/search.png");
     JButton home = new JButton("홈");
     //list + add,remove
     JButton list = new JButton("단어장 리스트");
@@ -53,13 +51,48 @@ public class Mainframe extends JFrame implements ActionListener{
 
     //Class
     VocManager manager;
+    EventListener eventListener = new EventListener();
+
+    //saveFile
+    String Username;
+    FileWriter out;
+    String date;
+    String directory;
+    int randint;
 
     Mainframe(){
         setTitle("영어 단어장 프로그램");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1280, 720);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try {
+                    out = new FileWriter("saves/save.sav");
+                    out.write(Username+"\n");
+                    out.write(settingclass.dir.getText()+"\n");
+                    out.write(settingclass.rescombo.getSelectedIndex()+"\n");
+                    out.write(Date()+"\n");
+                    out.write(randint+"");
+                    out.close();
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            }
+        });
+
+        //vocManager
+        manager = settingclass.vocManager;
+        manager.mainframe = this;
+        homeclass.topframe = this;
+        settingclass.topframe = this;
+        listclass.mainframe = this;
+        searchclass.mainframe = this;
+        quizclass.mainframe = this;
+        reviewclass.mainframe = this;
+
         init();
 
         setVisible(true);
@@ -77,15 +110,15 @@ public class Mainframe extends JFrame implements ActionListener{
         //mainpanel
         MainPanel.setLayout(card);
         MainPanel.add(homeclass, "Home");
+        MainPanel.add(listclass, "List");
+        MainPanel.add(searchclass, "Search");
+        MainPanel.add(quizclass, "Quiz");
+        MainPanel.add(reviewclass, "Review");
         MainPanel.add(settingclass, "Setting");
-
-        //vocManager
-        manager = settingclass.vocManager;
-        homeclass.topframe = this;
-        settingclass.topframe = this;
 
         container.add(SideBar, BorderLayout.WEST);
         container.add(MainPanel, BorderLayout.CENTER);
+        MakeFile();
     }
 
     private void setSideBar(){
@@ -118,6 +151,11 @@ public class Mainframe extends JFrame implements ActionListener{
             });
             jb.addActionListener(this);
 
+            list.setEnabled(false);
+            search.setEnabled(false);
+            Quiz.setEnabled(false);
+            Review.setEnabled(false);
+
             SideBar.add(jb);
             if(sidebar.length > count)
                 SideBar.add(new JSeparator());
@@ -125,11 +163,64 @@ public class Mainframe extends JFrame implements ActionListener{
         }
     }
 
+    public void loadfile(){
+        try(Scanner scan = new Scanner(new File("saves/save.sav"))){
+                String username = scan.nextLine();
+                String directory = scan.nextLine();
+                int resolution = Integer.parseInt(scan.nextLine());
+                date = scan.nextLine();
+                this.directory = directory;
+                randint = Integer.parseInt(scan.nextLine());
+                Username = username;
+                settingclass.applySetting.fileDirection = directory;
+                settingclass.applySetting.combobox = resolution;
+                settingclass.applySetting.th.start();
+                settingclass.rescombo.setSelectedIndex(resolution);
+                settingclass.dir.setText(directory);
+        }
+        catch (FileNotFoundException e){
+            //파일 새로 생성
+        }
+    }
+
+    public void MakeFile(){
+        File file = new File("saves/save.sav");
+        try {
+            if (file.createNewFile()) {
+                date = Date();
+            } else {
+                loadfile();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String Date(){
+        SimpleDateFormat data = new SimpleDateFormat("yyyy/MM/dd");
+        Calendar calendar = Calendar.getInstance();
+        Date date = calendar.getTime();
+        return data.format(date);
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == home){
             card.show(MainPanel, "Home");
-        }else if(e.getSource() == setting){
+        }else if(e.getSource() == list){
+            listclass.updateList.vocManager = manager;
+            listclass.updateList.run();
+            card.show(MainPanel, "List");
+        }else if(e.getSource() == search){
+            card.show(MainPanel, "Search");
+        }else if(e.getSource() == Quiz){
+            card.show(MainPanel, "Quiz");
+        }else if(e.getSource() == Review){
+            reviewclass.updateList.vocManager = manager;
+            reviewclass.updateList.run();
+            card.show(MainPanel, "Review");
+        }
+        else if(e.getSource() == setting){
             card.show(MainPanel, "Setting");
         }
     }
